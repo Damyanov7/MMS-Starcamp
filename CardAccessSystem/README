@@ -1,0 +1,68 @@
+Let's implement an access control system based on cards where each card is identified by its 48bit serial number
+	b0 | b1 | b2 | b3 | b4 | b5
+and it's access level, αα, 0x00-0xff.
+Let there be a file 'input' which contains all of the cards in this format
+	αα | b0 | b1 | b2 | b3 | b4 | b5 | αα | b0 | b1 | b2 | b3 | b4 | b5 | …
+up to 256 cards and their access levels αα.
+On stdin you'll have requests in this format
+	ENTER αα b0b1b2b3b4b5
+	LEAVE ββ b0b1b2b3b4b5
+	…
+which represent a request to enter access level αα with card b0b1b2b3b4b5 and leave access level αα with card b0b1b2b3b4b5 (down to access level ββ).
+Multiple promotions and demotions are allowed, e.g. from αα to γγ where the 8bit number γγ ≥ αα, or ββ ≤ αα.
+Default access level is 00, no access.
+If someone tries to leave an access level they haven't entered, then REJECT is generated.
+Answers must be either "REJECT" or "PERMIT".
+bX | X in { 0, …, 5 }, αα, ββ and γγ represent 8bit hex numbers.
+
+Example given:
+
+Let our input be as such (hex dump):
+	01 | f0 0f c7 c8 89 30 |
+	02 | f7 c7 03 05 e7 30 |
+	0c | a7 cf 38 dd f3 05 |
+	ff | ff fb fc fd cd 01 | EOF
+and the stdin stream be as such (stdin, stdout)
+stdin:		ENTER 01 f7c70305e730\n /* f7c70305e730 is at LEVEL 01 */
+stdout:	PERMIT
+stdin:		ENTER 03 a7cf38ddf305\n /* a7cf38ddf305 is at LEVEL 03 */
+stdout:	PERMIT
+stdin:		LEAVE 01 a7cf38ddf305\n /* a7cf38ddf305 is now at LEVEL 01 */
+stdout:	PERMIT
+stdin:		ENTER 05 f7c70305e730\n /* f7c70305e730 has no access at level 05 */
+stdout:	REJECT
+stdin:		ENTER 0b a7cf38ddf305\n /* a7cf38ddf305 is at level 0b */
+stdout:	PERMIT
+stdin:		LEAVE 00 a7cf38ddf305\n /* a7cf38ddf305 is at level 00, leaving */
+stdout:	PERMIT
+stdin:		LEAVE 0b a7cf38ddf305\n /* a7cf38ddf305 is not present */
+stdout:	REJECT
+stdin:		ENTER f0 a7cf38ddf305\n /* a7cf38ddf305 has no access to level f0 */
+stdout:	REJECT
+stdin:		LEAVE 01 fffbfcfdcd01\n /* fffbfcfdcd01 is not present */
+stdout:	REJECT
+stdin:		LEAVE 00 fffbfcfdcd01\n /* fffbfcfdcd01 is not present */
+stdout:	REJECT
+stdin:		ENTER 01 fffbfcfdcd01\n /* fffbfcfdcd01 is at level 01 */
+stdout:	PERMIT
+stdin:		ENTER 7a fffbfcfdcd01\n /* fffbfcfdcd01 is at level 7a */
+stdout:	PERMIT
+stdin:		LEAVE 01 fffbfcfdcd01\n /* fffbfcfdcd01 is now at level 01 */
+stdout:	PERMIT
+stdin:		LEAVE 00 fffbfcfdcd01\n /* fffbfcfdcd01 is now at level 00, leaving */
+stdout:	PERMIT
+stdin:		ENTER 01 fffbfcfdcd01\n /* fffbfcfdcd01 is now at level 01 */
+stdout:	PERMIT
+...
+
+(hint: 2 state machines)
+
+POSTSCRIPTVM
+
+You may simplify the second machine by changing
+	ENTER αα b0b1b2b3b4b5
+	LEAVE ββ b0b1b2b3b4b5
+to
+	Nααb0b1b2b3b4b5
+	Lββb0b1b2b3b4b5
+
